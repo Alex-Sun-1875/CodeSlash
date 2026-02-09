@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { aiService } from '../services/aiService';
-import { logger } from '../services/logger';
-import { configManager } from '../utils/configuration';
+import { aiService } from '../slash-ai-service';
+import { logger } from '../../base/logging';
+import { configManager } from '../../common/config/configuration';
 
 export class InlineCompletionProvider implements vscode.InlineCompletionItemProvider {
     private lastRequestTime: number = 0;
@@ -85,7 +85,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
             
             return [completion];
         } catch (error) {
-            logger.error('Inline Completion Error:', error);
+            logger.error('Inline Completion Error:', error as Error);
             return undefined;
         }
     }

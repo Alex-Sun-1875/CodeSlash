@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { aiService } from '../services/aiService';
-import { logger } from '../services/logger';
-import { configManager } from '../utils/configuration';
+import { aiService } from '../services/slash-ai-service';
+import { logger } from '../base/logging';
+import { configManager } from '../common/config/configuration';
 
 export class CodeCompletionProvider implements vscode.CompletionItemProvider {
     private debounceTimer: NodeJS.Timeout | null = null;
@@ -43,7 +43,7 @@ export class CodeCompletionProvider implements vscode.CompletionItemProvider {
 
             return new vscode.CompletionList(completionItems, false);
         } catch (error) {
-            logger.error('Error getting AI completion:', error);
+            logger.error('Error getting AI completion:', error as Error);
             return undefined;
         }
     }

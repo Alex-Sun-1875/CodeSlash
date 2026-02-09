@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { aiService } from '../services/aiService';
-import { logger } from '../services/logger';
+import { aiService } from '../slash-ai-service';
+import { logger } from '../../base/logging';
 
 interface ImportCandidate {
     symbol: string;
@@ -60,7 +60,7 @@ export class SmartImportFeature {
             const response = await aiService.getCompletion({ prompt });
             return this.parseImportSuggestions(response.text, symbols);
         } catch (error) {
-            logger.error('Smart Import Error:', error);
+            logger.error('Smart Import Error:', error as Error);
             return [];
         }
     }

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { logger } from '../services/logger';
+import { logger } from '../../base/logging';
 
 export interface WorkspaceInfo {
     language: string;
@@ -127,7 +127,7 @@ export class WorkspaceAnalyzer {
             
             walkDir(uri.fsPath);
         } catch (error) {
-            logger.error('Error listing files:', error);
+            logger.error('Error listing files:', error as Error);
         }
 
         return files;
@@ -145,7 +145,7 @@ export class WorkspaceAnalyzer {
                 Object.assign(dependencies, packageJson.dependencies || {});
                 Object.assign(dependencies, packageJson.devDependencies || {});
             } catch (error) {
-                logger.error('Error reading package.json:', error);
+                logger.error('Error reading package.json:', error as Error);
             }
         }
 
@@ -161,7 +161,7 @@ export class WorkspaceAnalyzer {
                     }
                 }
             } catch (error) {
-                logger.error('Error reading requirements.txt:', error);
+                logger.error('Error reading requirements.txt:', error as Error);
             }
         }
 
@@ -183,7 +183,7 @@ export class WorkspaceAnalyzer {
                     }
                 }
             } catch (error) {
-                logger.error('Error reading go.mod:', error);
+                logger.error('Error reading go.mod:', error as Error);
             }
         }
 
@@ -219,7 +219,7 @@ export class WorkspaceAnalyzer {
                 }
             }
         } catch (error) {
-            logger.error('Error analyzing structure:', error);
+            logger.error('Error analyzing structure:', error as Error);
         }
 
         return { directories, keyFiles, testFiles };
@@ -254,7 +254,7 @@ export class WorkspaceAnalyzer {
         try {
             return fs.readFileSync(filePath, 'utf8');
         } catch (error) {
-            logger.error('Error reading file:', error);
+            logger.error('Error reading file:', error as Error);
             return '';
         }
     }

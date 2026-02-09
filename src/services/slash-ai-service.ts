@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { logger } from './logger';
+import { logger } from '../base/logging';
 
 export type AIProvider = 'openai' | 'azure' | 'anthropic' | 'ollama';
 
@@ -64,7 +64,7 @@ export class AIService {
                     return await this.callOpenAI(model, prompt, maxTokens, temperature);
             }
         } catch (error) {
-            logger.error('AI Service Error:', error);
+            logger.error('AI Service Error:', error as Error);
             throw error;
         }
     }
