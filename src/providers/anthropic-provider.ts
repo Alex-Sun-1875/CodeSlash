@@ -1,39 +1,86 @@
 /**
- * Anthropic 服务提供商实现
+ * Anthropic 服务提供商实现 - 使用官方 SDK
  */
 
-import { AIProvider, AICompletionRequest, AICompletionResponse, AIProviderConfig } from './provider';
+import Anthropic from '@anthropic-ai/sdk';
+import {
+  AIProvider,
+  AICompletionRequest,
+  AICompletionResponse,
+  AIProviderConfig
+} from './provider';
 
 export class AnthropicProvider extends AIProvider {
-    constructor(config: AIProviderConfig) {
-        super({
-            ...config,
-            endpoint: config.endpoint || 'https://api.anthropic.com/v1'
-        });
+  private client: Anthropic;
+
+  constructor(config: AIProviderConfig) {
+    super({
+      ...config,
+      endpoint: config.endpoint || 'https://api.anthropic.com'
+    });
+
+    this.client = new Anthropic({
+      apiKey: this.config.apiKey,
+      baseURL: this.config.endpoint,
+      timeout: this.config.timeout || 30000
+    });
+  }
+
+  async getCompletion(request: AICompletionRequest): Promise<AICompletionResponse> {
+    if (!this.validateConfig()) {
+      throw new Error('Invalid Anthropic configuration');
     }
 
-    async getCompletion(request: AICompletionRequest): Promise<AICompletionResponse> {
-        if (!this.validateConfig()) {
-            throw new Error('Invalid Anthropic configuration');
-        }
+    const startTime = Date.now();
 
-        const startTime = Date.now();
-        
-        // TODO: 实现 Anthropic API 调用
-        // 这里需要使用实际的 Anthropic SDK 或 API
-        
-        return {
-            text: 'Anthropic completion result',
-            responseTime: Date.now() - startTime
-        };
-    }
+    try {
+      const response = await this.client.messages.create({
+        model: request.model || this.config.defaultModel,
+        max_tokens: request.maxTokens || 1000,
+        temperature: request.temperature,
+        system: request.systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: request.prompt
+          }
+        ]
+      });
 
-    async testConnection(): Promise<boolean> {
-        // TODO: 实现连接测试
-        return true;
-    }
+      const completion = response.content[0].type === 'text' ? response.content[0].text : '';
+      const usage = response.usage;
 
-    getName(): string {
-        return 'Anthropic';
+      return {
+        text: completion.trim(),
+        usage: usage
+          ? {
+              promptTokens: usage.input_tokens,
+              completionTokens: usage.output_tokens,
+              totalTokens: usage.input_tokens + usage.output_tokens
+            }
+          : undefined,
+        responseTime: Date.now() - startTime
+      };
+    } catch (error) {
+      throw new Error(`Anthropic API Error: ${(error as Error).message}`);
     }
+  }
+
+  async testConnection(): Promise<boolean> {
+    try {
+      // Anthropic 没有直接的测试连接 API，发送一个简单的请求
+      await this.client.messages.create({
+        model: this.config.defaultModel,
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'test' }]
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  getName(): string {
+    return 'Anthropic';
+  }
 }

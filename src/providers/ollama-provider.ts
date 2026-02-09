@@ -1,5 +1,5 @@
 /**
- * OpenAI 服务提供商实现 - 使用官方 SDK
+ * Ollama 服务提供商实现 - 使用 OpenAI SDK 兼容模式
  */
 
 import OpenAI from 'openai';
@@ -10,17 +10,17 @@ import {
   AIProviderConfig
 } from './provider';
 
-export class OpenAIProvider extends AIProvider {
+export class OllamaProvider extends AIProvider {
   private client: OpenAI;
 
   constructor(config: AIProviderConfig) {
     super({
       ...config,
-      endpoint: config.endpoint || 'https://api.openai.com/v1'
+      endpoint: config.endpoint || 'http://localhost:11434/v1'
     });
 
     this.client = new OpenAI({
-      apiKey: this.config.apiKey,
+      apiKey: 'ollama', // Ollama 不需要 API key，但 OpenAI SDK 需要
       baseURL: this.config.endpoint,
       timeout: this.config.timeout || 30000
     });
@@ -28,7 +28,7 @@ export class OpenAIProvider extends AIProvider {
 
   async getCompletion(request: AICompletionRequest): Promise<AICompletionResponse> {
     if (!this.validateConfig()) {
-      throw new Error('Invalid OpenAI configuration');
+      throw new Error('Invalid Ollama configuration');
     }
 
     const startTime = Date.now();
@@ -51,25 +51,28 @@ export class OpenAIProvider extends AIProvider {
           }
         ],
         max_tokens: request.maxTokens,
-        temperature: request.temperature
+        temperature: request.temperature,
+        stream: false
       });
 
       const completion = response.choices?.[0]?.message?.content || '';
+
+      // Ollama 的 usage 信息可能不完整，需要特殊处理
       const usage = response.usage;
 
       return {
         text: completion.trim(),
         usage: usage
           ? {
-              promptTokens: usage.prompt_tokens,
-              completionTokens: usage.completion_tokens,
-              totalTokens: usage.total_tokens
+              promptTokens: usage.prompt_tokens || 0,
+              completionTokens: usage.completion_tokens || 0,
+              totalTokens: usage.total_tokens || 0
             }
           : undefined,
         responseTime: Date.now() - startTime
       };
     } catch (error) {
-      throw new Error(`OpenAI API Error: ${(error as Error).message}`);
+      throw new Error(`Ollama API Error: ${(error as Error).message}`);
     }
   }
 
@@ -83,6 +86,6 @@ export class OpenAIProvider extends AIProvider {
   }
 
   getName(): string {
-    return 'OpenAI';
+    return 'Ollama';
   }
 }
