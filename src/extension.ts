@@ -1,15 +1,15 @@
 import * as vscode from 'vscode';
-import { aiService } from '@/services/slash-ai-service';
+import { slashAiService } from '@/services/slash-ai-service';
 import { logger } from '@/base/logging';
 import { configManager } from '@/common/config/configuration';
-import { smartImport } from '@/services/smart-import/slash-smart-importer';
-import { inlineCompletionProvider } from '@/services/completion/slash-inline-completion-provider';
-import { workspaceAnalyzer } from '@/services/workspace/slash-workspace-analyzer';
+import { slashSmartImporter } from '@/services/smart-import/slash-smart-importer';
+import { slashInlineCompletionProvider } from '@/services/completion/slash-inline-completion-provider';
+import { slashWorkspaceAnalyzer } from '@/services/workspace/slash-workspace-analyzer';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   logger.info('Extension is now active!');
 
-  if (!aiService.isConfigured()) {
+  if (!slashAiService.isConfigured()) {
     const message = '请在设置中配置 API 密钥以启用 AI 补全功能。';
     logger.warn(message);
     vscode.window.showWarningMessage(message);
@@ -22,7 +22,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       scheme: 'file',
       language: '*'
     },
-    inlineCompletionProvider
+    slashInlineCompletionProvider
   );
 
   context.subscriptions.push(inlineCompletionRegistration);
@@ -43,7 +43,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   const showStatusCommand = vscode.commands.registerCommand('code-slash.showStatus', async () => {
     const config = configManager.getConfiguration();
-    const isConfigured = aiService.isConfigured();
+    const isConfigured = slashAiService.isConfigured();
 
     const statusMessage = `
 code-slash 状态:
@@ -69,7 +69,7 @@ code-slash 状态:
   const scanImportsCommand = vscode.commands.registerCommand('code-slash.scanImports', async () => {
     const editor = vscode.window.activeTextEditor;
     if (editor) {
-      await smartImport.scanDocument(editor.document);
+      await slashSmartImporter.scanDocument(editor.document);
     }
   });
 
@@ -80,7 +80,7 @@ code-slash 状态:
     async (importStatement: string) => {
       const editor = vscode.window.activeTextEditor;
       if (editor && importStatement) {
-        await smartImport.addImport(importStatement, editor.document);
+        await slashSmartImporter.addImport(importStatement, editor.document);
       }
     }
   );
@@ -100,7 +100,7 @@ code-slash 状态:
     }
 
     try {
-      const explanation = await aiService.explainCode(selection);
+      const explanation = await slashAiService.explainCode(selection);
       const doc = await vscode.window.showQuickPick(
         explanation.split('\n').filter((line: string) => line.trim()),
         { title: 'Code Explanation', canPickMany: false }
@@ -127,7 +127,10 @@ code-slash 状态:
       }
 
       try {
-        const docs = await aiService.generateDocumentation(selection, editor.document.languageId);
+        const docs = await slashAiService.generateDocumentation(
+          selection,
+          editor.document.languageId
+        );
         const edit = new vscode.WorkspaceEdit();
         edit.insert(editor.document.uri, editor.selection.start, docs + '\n');
         await vscode.workspace.applyEdit(edit);
@@ -153,7 +156,7 @@ code-slash 状态:
     }
 
     try {
-      const suggestions = await aiService.generateRefactoringSuggestion(
+      const suggestions = await slashAiService.generateRefactoringSuggestion(
         selection,
         'Improve this code'
       );
@@ -190,7 +193,7 @@ code-slash 状态:
   const enableInlineCompletionCommand = vscode.commands.registerCommand(
     'code-slash.enableInlineCompletion',
     async () => {
-      inlineCompletionProvider.setEnabled(true);
+      slashInlineCompletionProvider.setEnabled(true);
       vscode.window.showInformationMessage('内联补全已启用！');
     }
   );
@@ -200,7 +203,7 @@ code-slash 状态:
   const disableInlineCompletionCommand = vscode.commands.registerCommand(
     'code-slash.disableInlineCompletion',
     async () => {
-      inlineCompletionProvider.setEnabled(false);
+      slashInlineCompletionProvider.setEnabled(false);
       vscode.window.showInformationMessage('内联补全已禁用！');
     }
   );
@@ -210,7 +213,7 @@ code-slash 状态:
   const acceptInlineCompletionCommand = vscode.commands.registerCommand(
     'code-slash.acceptInlineCompletion',
     async () => {
-      await inlineCompletionProvider.acceptCompletion(new vscode.Position(0, 0));
+      await slashInlineCompletionProvider.acceptCompletion(new vscode.Position(0, 0));
     }
   );
 
@@ -218,23 +221,23 @@ code-slash 状态:
 
   const onDidOpenTextDocument = vscode.window.onDidChangeActiveTextEditor(editor => {
     if (editor) {
-      smartImport.scanDocument(editor.document);
+      slashSmartImporter.scanDocument(editor.document);
     }
   });
 
   context.subscriptions.push(onDidOpenTextDocument);
 
   if (vscode.window.activeTextEditor) {
-    smartImport.scanDocument(vscode.window.activeTextEditor.document);
+    slashSmartImporter.scanDocument(vscode.window.activeTextEditor.document);
   }
 }
 
 export function deactivate(): void {
   logger.info('Extension is now deactivated.');
 
-  inlineCompletionProvider.dispose();
+  slashInlineCompletionProvider.dispose();
   configManager.dispose();
-  smartImport.dispose();
-  inlineCompletionProvider.dispose();
-  workspaceAnalyzer.dispose();
+  slashSmartImporter.dispose();
+  slashInlineCompletionProvider.dispose(); // Note: Duplicate dispose call in original, keeping it logic-wise or cleaning up? I'll keep it for now or clean it. Original had duplicate.
+  slashWorkspaceAnalyzer.dispose();
 }

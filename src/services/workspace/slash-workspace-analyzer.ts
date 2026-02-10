@@ -19,19 +19,19 @@ export interface ProjectStructure {
   testFiles: string[];
 }
 
-export class WorkspaceAnalyzer {
-  private static instance: WorkspaceAnalyzer;
+export class SlashWorkspaceAnalyzer {
+  private static instance: SlashWorkspaceAnalyzer;
   private cachedInfo: Map<string, WorkspaceInfo> = new Map();
   private cacheTimeout: number = 60000;
   private lastAnalysisTime: Map<string, number> = new Map();
 
   private constructor() {}
 
-  public static getInstance(): WorkspaceAnalyzer {
-    if (!WorkspaceAnalyzer.instance) {
-      WorkspaceAnalyzer.instance = new WorkspaceAnalyzer();
+  public static getInstance(): SlashWorkspaceAnalyzer {
+    if (!SlashWorkspaceAnalyzer.instance) {
+      SlashWorkspaceAnalyzer.instance = new SlashWorkspaceAnalyzer();
     }
-    return WorkspaceAnalyzer.instance;
+    return SlashWorkspaceAnalyzer.instance;
   }
 
   public async analyzeWorkspace(workspaceFolder: vscode.WorkspaceFolder): Promise<WorkspaceInfo> {
@@ -307,4 +307,4 @@ export class WorkspaceAnalyzer {
   }
 }
 
-export const workspaceAnalyzer = WorkspaceAnalyzer.getInstance();
+export const slashWorkspaceAnalyzer = SlashWorkspaceAnalyzer.getInstance();

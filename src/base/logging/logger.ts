@@ -18,25 +18,25 @@ export class Logger {
     this.outputChannel = vscode.window.createOutputChannel(channelName);
   }
 
-  public debug(message: string, metadata?: Record<string, any>): void {
+  public debug(message: string, metadata?: any): void {
     if (this.shouldLog('debug')) {
       this.log('debug', message, metadata);
     }
   }
 
-  public info(message: string, metadata?: Record<string, any>): void {
+  public info(message: string, metadata?: any): void {
     if (this.shouldLog('info')) {
       this.log('info', message, metadata);
     }
   }
 
-  public warn(message: string, metadata?: Record<string, any>): void {
+  public warn(message: string, metadata?: any): void {
     if (this.shouldLog('warn')) {
       this.log('warn', message, metadata);
     }
   }
 
-  public error(message: string, error?: Error, metadata?: Record<string, any>): void {
+  public error(message: string, error?: Error, metadata?: any): void {
     if (this.shouldLog('error')) {
       this.log('error', message, metadata, error);
     }
@@ -66,12 +66,7 @@ export class Logger {
     this.outputChannel.dispose();
   }
 
-  private log(
-    level: LogLevel,
-    message: string,
-    metadata?: Record<string, any>,
-    error?: Error
-  ): void {
+  private log(level: LogLevel, message: string, metadata?: any, error?: Error): void {
     const timestamp = this.config.enableTimestamp ? new Date().toISOString() : '';
     const prefix = this.config.prefix ? `[${this.config.prefix}]` : '';
     const levelStr = level.toUpperCase().padEnd(7);

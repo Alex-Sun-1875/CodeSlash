@@ -1,30 +1,23 @@
 import * as vscode from 'vscode';
 import { logger } from '@/base/logging';
+import { AI_PROMPTS } from '@/common/prompt';
+import {
+  AIProvider,
+  createAIProvider,
+  AIProviderType,
+  AIProviderConfig,
+  AICompletionRequest,
+  AICompletionResponse
+} from '@/providers';
 
-export type AIProvider = 'openai' | 'azure' | 'anthropic' | 'ollama';
-
-export interface AICompletionRequest {
-  prompt: string;
-  maxTokens?: number;
-  temperature?: number;
-  model?: string;
-}
-
-export interface AICompletionResponse {
-  text: string;
-  usage?: {
-    promptTokens: number;
-    completionTokens: number;
+export class SlashAiService {
+  private provider: AIProvider | null = null;
+  private providerType: AIProviderType = 'openai';
+  private config: AIProviderConfig = {
+    apiKey: '',
+    endpoint: '',
+    defaultModel: 'qwen3-coder:30b'
   };
-}
-
-export class AIService {
-  private apiKey: string = '';
-  private apiEndpoint: string = '';
-  private provider: AIProvider = 'ollama';
-  private model: string = 'qwen3-coder:30b';
-  private maxTokens: number = 100;
-  private temperature: number = 0.7;
 
   constructor() {
     this.loadConfiguration();
@@ -32,240 +25,64 @@ export class AIService {
 
   public loadConfiguration(): void {
     const config = vscode.workspace.getConfiguration('code-slash');
-    this.apiKey = config.get<string>('apiKey', '');
-    this.apiEndpoint = config.get<string>('apiEndpoint', 'https://api.openai.com/v1');
-    this.provider = config.get<AIProvider>('apiProvider', 'openai');
-    this.model = config.get<string>('model', 'gpt-4');
-    this.maxTokens = config.get<number>('maxTokens', 100);
-    this.temperature = config.get<number>('temperature', 0.7);
+    const type = config.get<string>('apiProvider', 'ollama') as AIProviderType; // Default to ollama
+
+    this.providerType = type;
+    this.config = {
+      apiKey: config.get<string>('apiKey', '') || (type === 'ollama' ? 'ollama' : ''), // Ensure apiKey is set for Ollama
+      endpoint: config.get<string>('apiEndpoint', ''),
+      defaultModel: config.get<string>('model', 'qwen2.5-coder:7b'),
+      timeout: config.get<number>('timeout', 30000)
+    };
+
+    // Special handling for Ollama default endpoint if not set or if default OpenAI
+    if (this.providerType === 'ollama') {
+      if (!this.config.endpoint || this.config.endpoint.includes('api.openai.com')) {
+        this.config.endpoint = 'http://localhost:11434/v1';
+      }
+    }
+
+    try {
+      this.provider = createAIProvider(this.providerType, this.config);
+      logger.info(`AI Provider switched to: ${this.provider.getName()}`);
+    } catch (error) {
+      logger.error('Failed to create AI provider:', error as Error);
+      this.provider = null;
+    }
   }
 
   public async getCompletion(request: AICompletionRequest): Promise<AICompletionResponse> {
-    if (!this.apiKey && this.provider !== 'ollama') {
-      throw new Error('API key not configured. Please set code-slash.apiKey in settings.');
+    if (!this.provider) {
+      throw new Error('AI Provider not initialized');
     }
 
-    const prompt = request.prompt || this.buildPrompt(request.prompt);
-    const maxTokens = request.maxTokens || this.maxTokens;
-    const temperature = request.temperature || this.temperature;
-    const model = request.model || this.model;
+    // Ensure system prompt is set
+    const finalRequest: AICompletionRequest = {
+      ...request,
+      systemPrompt: request.systemPrompt || AI_PROMPTS.SYSTEM,
+      // Use config default if not specified
+      model: request.model || this.config.defaultModel,
+      maxTokens: request.maxTokens || 1000,
+      temperature: request.temperature || 0.7
+    };
 
     try {
-      switch (this.provider) {
-        case 'openai':
-          return await this.callOpenAI(model, prompt, maxTokens, temperature);
-        case 'anthropic':
-          return await this.callAnthropic(model, prompt, maxTokens, temperature);
-        case 'azure':
-          return await this.callAzure(model, prompt, maxTokens, temperature);
-        case 'ollama':
-          return await this.callOllama(model, prompt, maxTokens, temperature);
-        default:
-          return await this.callOpenAI(model, prompt, maxTokens, temperature);
-      }
+      return await this.provider.getCompletion(finalRequest);
     } catch (error) {
       logger.error('AI Service Error:', error as Error);
       throw error;
     }
   }
 
-  private async callOpenAI(
-    model: string,
-    prompt: string,
-    maxTokens: number,
-    temperature: number
-  ): Promise<AICompletionResponse> {
-    const response = await fetch(this.apiEndpoint || 'https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          {
-            role: 'system',
-            content:
-              'You are a code completion assistant. Provide concise, accurate code completions based on the context.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        max_tokens: maxTokens,
-        temperature: temperature,
-        stream: false
-      })
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`OpenAI API Error: ${response.status} - ${error}`);
-    }
-
-    const data: any = await response.json();
-    const completion = data.choices?.[0]?.message?.content || '';
-
-    return {
-      text: completion.trim(),
-      usage: data.usage
-    };
-  }
-
-  private async callAnthropic(
-    model: string,
-    prompt: string,
-    maxTokens: number,
-    temperature: number
-  ): Promise<AICompletionResponse> {
-    const endpoint = this.apiEndpoint || 'https://api.anthropic.com/v1/complete';
-
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: model,
-        prompt: `\n\nHuman: ${prompt}\n\nAssistant:`,
-        max_tokens_to_sample: maxTokens,
-        temperature: temperature
-      })
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Anthropic API Error: ${response.status} - ${error}`);
-    }
-
-    const data: any = await response.json();
-
-    return {
-      text: data.completion || '',
-      usage: {
-        promptTokens: data.prompt_tokens || 0,
-        completionTokens: data.completion_tokens || 0
-      }
-    };
-  }
-
-  private async callAzure(
-    model: string,
-    prompt: string,
-    maxTokens: number,
-    temperature: number
-  ): Promise<AICompletionResponse> {
-    const endpoint = this.apiEndpoint || process.env.AZURE_OPENAI_ENDPOINT || '';
-
-    const response = await fetch(
-      `${endpoint}/openai/deployments/${model}/chat/completions?api-version=2024-02-15-preview`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'api-key': this.apiKey
-        },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'system',
-              content:
-                'You are a code completion assistant. Provide concise, accurate code completions based on the context.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          max_tokens: maxTokens,
-          temperature: temperature
-        })
-      }
-    );
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Azure API Error: ${response.status} - ${error}`);
-    }
-
-    const data: any = await response.json();
-    const completion = data.choices?.[0]?.message?.content || '';
-
-    return {
-      text: completion.trim(),
-      usage: data.usage
-    };
-  }
-
-  private async callOllama(
-    model: string,
-    prompt: string,
-    maxTokens: number,
-    temperature: number
-  ): Promise<AICompletionResponse> {
-    const endpoint = this.apiEndpoint || 'http://localhost:11434/v1';
-
-    const response = await fetch(`${endpoint}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'HnYZ9ct2NvXEwOS5Hjf0ePz1XUCFZGSfCuapTYU6e5A'
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          {
-            role: 'system',
-            content:
-              'You are a code completion assistant. Provide concise, accurate code completions based on the context.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        max_tokens: maxTokens,
-        temperature: temperature,
-        stream: false
-      })
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Ollama API Error: ${response.status} - ${error}`);
-    }
-
-    const data: any = await response.json();
-    const completion = data.choices?.[0]?.message?.content || '';
-
-    return {
-      text: completion.trim(),
-      usage: data.usage
-    };
-  }
-
-  private buildPrompt(context: string): string {
-    return `Please complete the following code. Provide only the code completion without any explanations:\n\n${context}`;
-  }
-
   public isConfigured(): boolean {
-    if (this.provider === 'ollama') {
+    if (this.providerType === 'ollama') {
       return true;
     }
-    return !!this.apiKey && !!this.apiEndpoint;
+    return !!this.config.apiKey;
   }
 
   public async analyzeCodeForImports(code: string, language: string): Promise<string> {
-    const prompt = `Analyze the following ${language} code and identify external module imports that might be missing. Return only the import statements, one per line, in the correct format.
-
-Code:
-${code}
-
-Missing imports (or "NONE" if no missing imports detected):`;
+    const prompt = AI_PROMPTS.ANALYZE_IMPORTS(code, language);
 
     const response = await this.getCompletion({
       prompt,
@@ -277,12 +94,7 @@ Missing imports (or "NONE" if no missing imports detected):`;
   }
 
   public async generateRefactoringSuggestion(code: string, context: string): Promise<string> {
-    const prompt = `Analyze the following code and suggest improvements based on this context: "${context}"
-
-Code:
-${code}
-
-Provide specific refactoring suggestions:`;
+    const prompt = AI_PROMPTS.REFACTOR_SUGGESTION(code, context);
 
     const response = await this.getCompletion({
       prompt,
@@ -294,11 +106,7 @@ Provide specific refactoring suggestions:`;
   }
 
   public async explainCode(code: string): Promise<string> {
-    const prompt = `Explain the following code in a clear, concise manner:
-
-${code}
-
-Explanation:`;
+    const prompt = AI_PROMPTS.EXPLAIN_CODE(code);
 
     const response = await this.getCompletion({
       prompt,
@@ -310,16 +118,7 @@ Explanation:`;
   }
 
   public async generateDocumentation(code: string, language: string): Promise<string> {
-    const prompt = `Generate documentation for the following ${language} code. Include:
-- Brief description
-- Parameters (if any)
-- Return value (if any)
-- Usage example
-
-Code:
-${code}
-
-Documentation:`;
+    const prompt = AI_PROMPTS.GENERATE_DOCS(code, language);
 
     const response = await this.getCompletion({
       prompt,
@@ -329,6 +128,13 @@ Documentation:`;
 
     return response.text;
   }
+
+  public async testConnection(): Promise<boolean> {
+    if (!this.provider) {
+      return false;
+    }
+    return await this.provider.testConnection();
+  }
 }
 
-export const aiService = new AIService();
+export const slashAiService = new SlashAiService();

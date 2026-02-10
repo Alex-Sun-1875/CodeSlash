@@ -122,13 +122,13 @@
         },
         "code-slash.apiEndpoint": {
           "type": "string",
-          "default": "https://api.openai.com/v1",
+          "default": "http://localhost:11434/v1",
           "description": "API endpoint URL"
         },
         "code-slash.model": {
           "type": "string",
-          "default": "gpt-4",
-          "description": "AI model name (e.g., gpt-4, gpt-3.5-turbo, claude-3-sonnet-20240229)"
+          "default": "qwen3-coder:30b",
+          "description": "AI model name (e.g., gpt-4, qwen2.5-coder:7b)"
         },
         "code-slash.maxTokens": {
           "type": "integer",

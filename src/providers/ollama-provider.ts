@@ -10,6 +10,8 @@ import {
   AIProviderConfig
 } from './provider';
 
+import { logger } from '@/base/logging';
+
 export class OllamaProvider extends AIProvider {
   private client: OpenAI;
 
@@ -20,7 +22,7 @@ export class OllamaProvider extends AIProvider {
     });
 
     this.client = new OpenAI({
-      apiKey: 'ollama', // Ollama 不需要 API key，但 OpenAI SDK 需要
+      apiKey: this.config.apiKey || 'ollama', // 使用配置的 API Key，默认为 'ollama'
       baseURL: this.config.endpoint,
       timeout: this.config.timeout || 30000
     });
@@ -39,11 +41,11 @@ export class OllamaProvider extends AIProvider {
         messages: [
           ...(request.systemPrompt
             ? [
-                {
-                  role: 'system' as const,
-                  content: request.systemPrompt
-                }
-              ]
+              {
+                role: 'system' as const,
+                content: request.systemPrompt
+              }
+            ]
             : []),
           {
             role: 'user' as const,
@@ -56,6 +58,7 @@ export class OllamaProvider extends AIProvider {
       });
 
       const completion = response.choices?.[0]?.message?.content || '';
+      logger.info('Completion:', completion);
 
       // Ollama 的 usage 信息可能不完整，需要特殊处理
       const usage = response.usage;
@@ -64,10 +67,10 @@ export class OllamaProvider extends AIProvider {
         text: completion.trim(),
         usage: usage
           ? {
-              promptTokens: usage.prompt_tokens || 0,
-              completionTokens: usage.completion_tokens || 0,
-              totalTokens: usage.total_tokens || 0
-            }
+            promptTokens: usage.prompt_tokens || 0,
+            completionTokens: usage.completion_tokens || 0,
+            totalTokens: usage.total_tokens || 0
+          }
           : undefined,
         responseTime: Date.now() - startTime
       };

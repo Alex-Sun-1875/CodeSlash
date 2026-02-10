@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import { aiService } from '@/services/slash-ai-service';
+import { slashAiService } from '@/services/slash-ai-service';
 import { logger } from '@/base/logging';
+import { SMART_IMPORT_PROMPTS } from '@/common/prompt';
 
 interface ImportCandidate {
   symbol: string;
@@ -8,7 +9,7 @@ interface ImportCandidate {
   confidence: number;
 }
 
-export class SmartImportFeature {
+export class SlashSmartImporter {
   private diagnosticCollection: vscode.DiagnosticCollection;
   private statusBarItem: vscode.StatusBarItem;
   private currentDocument: vscode.TextDocument | null = null;
@@ -58,7 +59,7 @@ export class SmartImportFeature {
     const prompt = this.buildImportDetectionPrompt(document, symbols);
 
     try {
-      const response = await aiService.getCompletion({ prompt });
+      const response = await slashAiService.getCompletion({ prompt });
       return this.parseImportSuggestions(response.text, symbols);
     } catch (error) {
       logger.error('Smart Import Error:', error as Error);
@@ -153,21 +154,7 @@ export class SmartImportFeature {
     const language = this.getLanguageId(document);
     const code = document.getText().substring(0, 3000);
 
-    return `Analyze the following ${language} code and identify which symbols from the list "${symbols.join(', ')}" are likely imported from external modules or packages.
-
-Current file type: ${language}
-Code snippet:
-${code}
-
-For each symbol that appears to be from an external source, provide the import statement in the format:
-SYMBOL:import statement
-
-For example:
-React:import React from 'react'
-useState:import { useState } from 'react'
-lodash:import _ from 'lodash'
-
-Only respond with symbols that have high confidence of being external imports. If unsure, don't include the symbol.`;
+    return SMART_IMPORT_PROMPTS.DETECT_IMPORTS(code, language, symbols);
   }
 
   private parseImportSuggestions(response: string, symbols: string[]): ImportCandidate[] {
@@ -248,7 +235,6 @@ Only respond with symbols that have high confidence of being external imports. I
       return;
     }
 
-    const firstLine = document.lineAt(0);
     const edit = new vscode.WorkspaceEdit();
 
     const insertPosition = new vscode.Position(0, 0);
@@ -309,4 +295,4 @@ Only respond with symbols that have high confidence of being external imports. I
   }
 }
 
-export const smartImport = new SmartImportFeature();
+export const slashSmartImporter = new SlashSmartImporter();

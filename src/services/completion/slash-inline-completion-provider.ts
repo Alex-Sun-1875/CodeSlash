@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
-import { aiService } from '@/services/slash-ai-service';
+import { slashAiService } from '@/services/slash-ai-service';
 import { logger } from '@/base/logging';
 import { configManager } from '@/common/config/configuration';
+import { INLINE_COMPLETION_PROMPTS } from '@/common/prompt';
 
-export class InlineCompletionProvider implements vscode.InlineCompletionItemProvider {
+export class SlashInlineCompletionProvider implements vscode.InlineCompletionItemProvider {
   private lastRequestTime: number = 0;
   private debounceTime: number = 300;
   private isEnabled: boolean = true;
@@ -36,7 +37,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
       return undefined;
     }
 
-    if (!aiService.isConfigured()) {
+    if (!slashAiService.isConfigured()) {
       return undefined;
     }
 
@@ -53,7 +54,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
       const context = this.extractContext(document, position);
       const prompt = this.buildPrompt(context);
 
-      const response = await aiService.getCompletion({ prompt });
+      const response = await slashAiService.getCompletion({ prompt });
       const completionText = response.text.trim();
 
       if (this.isDisposed || token.isCancellationRequested || !completionText) {
@@ -108,11 +109,7 @@ export class InlineCompletionProvider implements vscode.InlineCompletionItemProv
   }
 
   private buildPrompt(codeContext: string): string {
-    return `Complete the following code. Provide only the next line(s) of code without any explanation or markdown formatting:
-
-${codeContext}
-
-Complete the code:`;
+    return INLINE_COMPLETION_PROMPTS.BUILD_PROMPT(codeContext);
   }
 
   public async acceptCompletion(position: vscode.Position): Promise<void> {
@@ -149,4 +146,4 @@ Complete the code:`;
   }
 }
 
-export const inlineCompletionProvider = new InlineCompletionProvider();
+export const slashInlineCompletionProvider = new SlashInlineCompletionProvider();
