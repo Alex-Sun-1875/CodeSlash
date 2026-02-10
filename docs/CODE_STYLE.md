@@ -109,7 +109,9 @@ src/
 
 - 每个模块目录必须包含 `index.ts` 文件
 - 通过 `index.ts` 统一导出该模块的所有公共接口
-- 使用绝对路径导入：`@/base/logging` 而非 `../../../base/logging`
+- **导入规范**：
+  - **同模块内部**：必须使用相对路径（如 `./local-file`）
+  - **跨模块导入**：必须使用 `@/` 别名路径（如 `@/base/logging`），禁止使用 `../../../` 等长相对路径
 
 ## 5. 编码规范
 
@@ -179,6 +181,34 @@ npm run compile-tests
 - 实现性能指标收集
 - 设置合理的超时机制
 - 优化 API 调用频率
+
+## 9. 日志使用规范
+
+### 9.1 统一单例
+
+- 必须使用 `src/base/logging` 导出的全局 `logger` 实例
+- 禁止在业务代码中创建新的 Logger 实例
+- 不要使用 `console.log`，必须使用统一的 `logger`
+
+### 9.2 日志级别
+
+- **debug**：调试信息，仅在开发环境或详细模式下显示
+- **info**：一般信息，记录关键业务流程
+- **warn**：警告信息，不影响系统运行但需关注
+- **error**：错误信息，记录异常和错误堆栈
+
+### 9.3 使用示例
+
+```typescript
+import { logger } from '@/base/logging';
+
+logger.info('Starting service...');
+try {
+  // ...
+} catch (error) {
+  logger.error('Service failure', error as Error);
+}
+```
 
 ---
 

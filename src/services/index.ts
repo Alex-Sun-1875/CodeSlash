@@ -6,13 +6,13 @@
  */
 
 // AI 服务
-export * as ai from '../providers';
+export * as ai from '@/providers';
 
 // 日志服务
-export * as logger from '../base/logging';
+export * as logger from '@/base/logging';
 
 // 配置服务
-export * as config from '../common/config';
+export * as config from '@/common/config';
 
 // TODO: 工作区服务和补全服务待实现
 // export * as workspace from './workspace';

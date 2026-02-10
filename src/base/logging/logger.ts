@@ -1,63 +1,68 @@
-/**
- * VSCode 输出通道日志实现
- */
-
 import * as vscode from 'vscode';
-import { Logger, LoggerConfig, LogLevel } from './logger.interface';
 
-export class VSCodeLogger extends Logger {
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+
+export interface LoggerConfig {
+  level: LogLevel;
+  prefix?: string;
+  enableTimestamp?: boolean;
+  enableConsole?: boolean;
+}
+
+export class Logger {
   private outputChannel: vscode.OutputChannel;
+  private config: LoggerConfig;
 
   constructor(config: LoggerConfig, channelName: string = 'Code Slash') {
-    super(config);
+    this.config = config;
     this.outputChannel = vscode.window.createOutputChannel(channelName);
   }
 
-  debug(message: string, metadata?: Record<string, any>): void {
+  public debug(message: string, metadata?: Record<string, any>): void {
     if (this.shouldLog('debug')) {
       this.log('debug', message, metadata);
     }
   }
 
-  info(message: string, metadata?: Record<string, any>): void {
+  public info(message: string, metadata?: Record<string, any>): void {
     if (this.shouldLog('info')) {
       this.log('info', message, metadata);
     }
   }
 
-  warn(message: string, metadata?: Record<string, any>): void {
+  public warn(message: string, metadata?: Record<string, any>): void {
     if (this.shouldLog('warn')) {
       this.log('warn', message, metadata);
     }
   }
 
-  error(message: string, error?: Error, metadata?: Record<string, any>): void {
+  public error(message: string, error?: Error, metadata?: Record<string, any>): void {
     if (this.shouldLog('error')) {
       this.log('error', message, metadata, error);
     }
   }
 
-  setLevel(level: LogLevel): void {
+  public setLevel(level: LogLevel): void {
     this.config.level = level;
   }
 
-  setPrefix(prefix: string): void {
+  public setPrefix(prefix: string): void {
     this.config.prefix = prefix;
   }
 
-  show(): void {
+  public show(): void {
     this.outputChannel.show();
   }
 
-  hide(): void {
+  public hide(): void {
     this.outputChannel.hide();
   }
 
-  clear(): void {
+  public clear(): void {
     this.outputChannel.clear();
   }
 
-  dispose(): void {
+  public dispose(): void {
     this.outputChannel.dispose();
   }
 
@@ -84,7 +89,32 @@ export class VSCodeLogger extends Logger {
       }
     }
 
-    this.outputChannel.appendLine(output);
+    this.outputChannel.appendLine(output.trim());
+
+    if (this.config.enableConsole) {
+      const consoleArgs: any[] = [output.trim()];
+      if (metadata) {
+        consoleArgs.push(metadata);
+      }
+      if (error) {
+        consoleArgs.push(error);
+      }
+
+      switch (level) {
+        case 'debug':
+          console.debug(...consoleArgs);
+          break;
+        case 'info':
+          console.info(...consoleArgs);
+          break;
+        case 'warn':
+          console.warn(...consoleArgs);
+          break;
+        case 'error':
+          console.error(...consoleArgs);
+          break;
+      }
+    }
   }
 
   private shouldLog(level: LogLevel): boolean {
@@ -92,3 +122,10 @@ export class VSCodeLogger extends Logger {
     return levels.indexOf(level) >= levels.indexOf(this.config.level);
   }
 }
+
+export const logger = new Logger({
+  level: 'info',
+  prefix: 'CodeSlash',
+  enableTimestamp: true,
+  enableConsole: true
+});

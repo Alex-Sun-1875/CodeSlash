@@ -13,5 +13,5 @@ export * as logging from './logging';
 export * as utils from './utils';
 
 // 导出核心基础设施类型
-export type { LogLevel, LoggerConfig, LogEntry } from './logging/logger.interface';
-export { Logger } from './logging/logger.interface';
+export type { LogLevel, LoggerConfig } from './logging';
+export { Logger } from './logging';

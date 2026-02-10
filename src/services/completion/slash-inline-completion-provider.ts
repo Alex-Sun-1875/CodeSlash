@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { aiService } from '../slash-ai-service';
-import { logger } from '../../base/logging';
-import { configManager } from '../../common/config/configuration';
+import { aiService } from '@/services/slash-ai-service';
+import { logger } from '@/base/logging';
+import { configManager } from '@/common/config/configuration';
 
 export class InlineCompletionProvider implements vscode.InlineCompletionItemProvider {
   private lastRequestTime: number = 0;

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { logger } from '../base/logging';
+import { logger } from '@/base/logging';
 
 export type AIProvider = 'openai' | 'azure' | 'anthropic' | 'ollama';
 

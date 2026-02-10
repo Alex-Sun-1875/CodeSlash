@@ -11,7 +11,7 @@ import {
   AICompletionRequest,
   AICompletionResponse,
   AIProviderConfig
-} from '../../providers/provider';
+} from '@/providers/provider';
 import { createAIProvider } from './factory';
 
 export class AIService {

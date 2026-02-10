@@ -5,10 +5,10 @@
  * 根据配置动态创建对应的 AI 提供商实例
  */
 
-import { AIProvider, AIProviderType, AIProviderConfig } from '../../providers/provider';
-import { OpenAIProvider } from '../../providers/openai-provider';
-import { AnthropicProvider } from '../../providers/anthropic-provider';
-import { GeminiProvider } from '../../providers/gemini-provider';
+import { AIProvider, AIProviderType, AIProviderConfig } from '@/providers/provider';
+import { OpenAIProvider } from '@/providers/openai-provider';
+import { AnthropicProvider } from '@/providers/anthropic-provider';
+import { GeminiProvider } from '@/providers/gemini-provider';
 
 export function createAIProvider(type: AIProviderType, config: AIProviderConfig): AIProvider {
   switch (type) {

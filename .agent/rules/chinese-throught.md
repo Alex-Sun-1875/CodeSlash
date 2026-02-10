@@ -1,6 +1,5 @@
 ---
 trigger: always_on
-glob:
-description:
 ---
 
+请始终使用中文进行思考和回复。在生成代码前，请先用中文列出你的思考过程和实现计划。

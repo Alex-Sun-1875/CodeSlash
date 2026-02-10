@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
-import { aiService } from './services/slash-ai-service';
-import { logger } from './base/logging';
-import { configManager } from './common/config/configuration';
-import { smartImport } from './services/smart-import/slash-smart-importer';
-import { inlineCompletionProvider } from './services/completion/slash-inline-completion-provider';
-import { workspaceAnalyzer } from './services/workspace/slash-workspace-analyzer';
+import { aiService } from '@/services/slash-ai-service';
+import { logger } from '@/base/logging';
+import { configManager } from '@/common/config/configuration';
+import { smartImport } from '@/services/smart-import/slash-smart-importer';
+import { inlineCompletionProvider } from '@/services/completion/slash-inline-completion-provider';
+import { workspaceAnalyzer } from '@/services/workspace/slash-workspace-analyzer';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   logger.info('Extension is now active!');

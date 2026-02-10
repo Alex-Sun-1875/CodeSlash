@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { aiService } from '../slash-ai-service';
-import { logger } from '../../base/logging';
+import { aiService } from '@/services/slash-ai-service';
+import { logger } from '@/base/logging';
 
 interface ImportCandidate {
   symbol: string;

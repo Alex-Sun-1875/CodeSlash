@@ -7,13 +7,12 @@
 		],
 		"sourceMap": true,
 		"rootDir": "src",
+		"baseUrl": "./src",
 		"moduleResolution": "node16",
 		"paths": {
-			"@/*": ["./*"],
-			"@/base/*": ["./base/*"],
-			"@/common/*": ["./common/*"],
-			"@/providers/*": ["./providers/*"],
-			"@/services/*": ["./services/*"]
+			"@/*": [
+				"./*"
+			]
 		},
 		"strict": true,
 		"esModuleInterop": true,

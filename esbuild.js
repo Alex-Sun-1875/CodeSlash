@@ -32,37 +32,17 @@ const esbuildProblemMatcherPlugin = {
 const pathAliasPlugin = {
 	name: 'path-alias',
 	setup(build) {
-		// 读取 tsconfig.json 中的路径配置
-		const tsconfigPath = path.join(process.cwd(), 'tsconfig.json');
-		let pathMappings = {};
-		
-		if (fs.existsSync(tsconfigPath)) {
-			const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, 'utf8'));
-			const paths = tsconfig.compilerOptions?.paths || {};
-			
-			// 转换路径映射
-			for (const [alias, mappings] of Object.entries(paths)) {
-				const normalizedAlias = alias.replace(/\*$/, '');
-				const normalizedPath = mappings[0].replace(/\*$/, '');
-				pathMappings[normalizedAlias] = normalizedPath;
+		// 解析 @/ 开头的导入路径，映射到 src/ 目录
+		build.onResolve({ filter: /^@\/.*/ }, async args => {
+			const relativePath = args.path.replace(/^@\//, './');
+			const result = await build.resolve(relativePath, {
+				resolveDir: path.resolve(__dirname, 'src'),
+				kind: 'import-statement',
+			});
+			if (result.errors.length > 0) {
+				return { errors: result.errors };
 			}
-		}
-
-		// 解析导入路径
-		build.onResolve({ filter: /^@\/.*/ }, args => {
-			const importPath = args.path;
-			const alias = importPath.split('/')[1]; // 获取 @/ 后的第一部分
-			
-			if (pathMappings[alias]) {
-				const resolvedPath = path.join(
-					path.dirname(args.importer),
-					pathMappings[alias],
-					importPath.substring(alias.length + 2) // 移除 @/alias/ 部分
-				);
-				return { path: resolvedPath };
-			}
-			
-			return { path: importPath };
+			return { path: result.path, external: result.external };
 		});
 	}
 };
